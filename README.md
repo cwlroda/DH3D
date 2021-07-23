@@ -61,7 +61,9 @@ Create an environment:
 
 Install dependencies:
 
-    conda install --file requirements.txt
+    conda install -c hcc -c open3d-admin --file requirements.txt
+
+(by default, `open3d` and `tensorpack` are not found in the default conda repo)
 
 Note that [Flex-Convolution](https://github.com/cgtuebingen/Flex-Convolution) (Groh et al, ACCV2018)
 requires TensorFlow 1.9-1.11. In our case, we tested the TensorFlow of these versions installed
