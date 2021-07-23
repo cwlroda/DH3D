@@ -103,10 +103,10 @@ We add 1x1 convolution on 3D points `conv_relative`. The detailed build instruct
     export CUB_INC=$HOME/libs/cub-1.8.0/
     rm /tmp/v1.8.0.zip
 
-Then compile the operators in `user_ops/`:
+Then compile the operators in `user_ops/` after navigating back to the DH3D directory:
 
     cd user_ops/
-    cmake . -DPYTHON_EXECUTABLE=python3 && make -j
+    cmake . -DPYTHON_EXECUTABLE=python3 && make -j$(nproc)
 
 ### Datasets
 
