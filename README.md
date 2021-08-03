@@ -61,7 +61,9 @@ Create an environment:
 
 Install dependencies:
 
-    conda install --file requirements.txt
+    conda install -c hcc -c open3d-admin --file requirements.txt
+
+(by default, `open3d` and `tensorpack` are not found in the default conda repo)
 
 Note that [Flex-Convolution](https://github.com/cgtuebingen/Flex-Convolution) (Groh et al, ACCV2018)
 requires TensorFlow 1.9-1.11. In our case, we tested the TensorFlow of these versions installed
@@ -71,6 +73,13 @@ TensorFlow from source, following [the offcial instruction](https://www.tensorfl
 Once TensorFlow is installed, compile the operators from [PointNet++](https://github.com/charlesq34/pointnet2)
 (Qi et al, NIPS2017) in `tf_ops/`. Related information is also provided
 [here](https://github.com/charlesq34/pointnet2#compile-customized-tf-operators).
+
+First, update the install scripts to match your current version of CUDA/nvcc:
+
+    nvcc --version
+    NVCC_VER=`nvcc --version | grep -o "cuda_..\.."` # get current version of nvcc
+    NVCC_VER="${NVCC_VER:5}"			     # get numerical number
+    sed -i "s|cuda-10.0|cuda-$NVCC_VER|g" "tf_ops/*/tf_*_compile.sh    
 
     cd tf_ops/grouping/
     ./tf_grouping_compile.sh
@@ -94,10 +103,10 @@ We add 1x1 convolution on 3D points `conv_relative`. The detailed build instruct
     export CUB_INC=$HOME/libs/cub-1.8.0/
     rm /tmp/v1.8.0.zip
 
-Then compile the operators in `user_ops/`:
+Then compile the operators in `user_ops/` after navigating back to the DH3D directory:
 
     cd user_ops/
-    cmake . -DPYTHON_EXECUTABLE=python3 && make -j
+    cmake . -DPYTHON_EXECUTABLE=python3 && make -j$(nproc)
 
 ### Datasets
 
