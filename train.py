@@ -64,7 +64,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
     configs = ConfigFactory(args.cfg).getconfig()
     logger.set_logger_dir(args.logdir, action=args.logact)
     log_config_info(configs)
