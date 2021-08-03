@@ -41,7 +41,9 @@ def get_eval_global_testdata(cfg, data_path, ref_gt_file):
     other_neg = 1 if cfg.other_neg else 0
     totalbatch = querybatch * (pos + neg + other_neg + 1)
 
-    df = Global_test_dataset(basedir=data_path, test_file=os.path.join(data_path, ref_gt_file))
+    df = Global_test_dataset(
+        basedir=data_path, test_file=os.path.join(data_path, ref_gt_file)
+    )
     df = BatchData(df, totalbatch, remainder=True)
 
     df.reset_state()
@@ -50,7 +52,7 @@ def get_eval_global_testdata(cfg, data_path, ref_gt_file):
 
 def get_model_config(Model_Path):
     model_base = os.path.dirname(Model_Path)
-    model_config_json = os.path.join(model_base, 'config.json')
+    model_config_json = os.path.join(model_base, "config.json")
 
     assert os.path.exists(model_config_json)
     with open(model_config_json) as f:
@@ -69,13 +71,15 @@ def eval_retrieval(evalargs):
     pred_config = PredictConfig(
         model=DH3D(model_configs),
         session_init=get_model_loader(evalargs.ModelPath),
-        input_names=['pointclouds'],
-        output_names=['globaldesc'],  # ['globaldesc'], output_weights
+        input_names=["pointclouds"],
+        output_names=["globaldesc"],  # ['globaldesc'], output_weights
     )
     predictor = OfflinePredictor(pred_config)
 
     # Data:
-    df, totalbatch = get_eval_global_testdata(model_configs, evalargs.data_path, evalargs.ref_gt_file)
+    df, totalbatch = get_eval_global_testdata(
+        model_configs, evalargs.data_path, evalargs.ref_gt_file
+    )
 
     # Predict:
     pcdnum = 0
@@ -99,15 +103,17 @@ def eval_retrieval(evalargs):
             mkdir_p(basedir)
             globaldesc.tofile(savename)
 
-
-    print('predicted {} poitnclouds \n'.format(pcdnum))
+    print("predicted {} poitnclouds \n".format(pcdnum))
 
     # Evaluation recall:
     if evalargs.eval_recall:
-        evaluator = GlobalDesc_eval(result_savedir='./', desc_dir=save_dir,
-                                    database_file=os.path.join(evalargs.data_path, evalargs.ref_gt_file),
-                                    query_file=os.path.join(evalargs.data_path, evalargs.qry_gt_file),
-                                    max_num_nn=25)
+        evaluator = GlobalDesc_eval(
+            result_savedir="./",
+            desc_dir=save_dir,
+            database_file=os.path.join(evalargs.data_path, evalargs.ref_gt_file),
+            query_file=os.path.join(evalargs.data_path, evalargs.qry_gt_file),
+            max_num_nn=25,
+        )
         evaluator.evaluate()
         print("evaluation finished!\n")
 
@@ -119,21 +125,41 @@ def eval_retrieval(evalargs):
             shutil.rmtree(d)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', help='comma separated list of GPU(s) to use.', default='0')
-    parser.add_argument('--save_dir', type=str, default='./demo_data/res_global')
+    parser.add_argument(
+        "--demo", action="store_true", help="run on demo data", default=False
+    )
+    parser.add_argument(
+        "--gpu", help="comma separated list of GPU(s) to use.", default="0"
+    )
+    parser.add_argument("--save_dir", type=str, default="./res_global")
 
     # for evaluation
-    parser.add_argument('--ModelPath', type=str, help='Model to load (for evaluation)',
-                        default='../../models/global/globalmodel')
-    # parser.add_argument('--data_path', type=str, default="../data/oxford_test_global")
-    parser.add_argument('--data_path', type=str, default="./demo_data/")
-    parser.add_argument('--ref_gt_file', type=str, default='global_ref_demo.pickle')
-    parser.add_argument('--qry_gt_file', type=str, default='global_query_demo.pickle')
+    parser.add_argument(
+        "--ModelPath",
+        type=str,
+        help="Model to load (for evaluation)",
+        default="../../models/global/globalmodel",
+    )
+    parser.add_argument("--data_path", type=str, default="../data/oxford_test_global")
+    # parser.add_argument('--data_path', type=str, default="./demo_data/")
+    parser.add_argument(
+        "--ref_gt_file", type=str, default="oxford_test_global_gt_reference.pickle",
+    )
+    parser.add_argument(
+        "--qry_gt_file", type=str, default="oxford_test_global_gt_query.pickle",
+    )
 
-    parser.add_argument('--eval_recall', action='store_true', default=False)
-    parser.add_argument('--delete_tmp', action='store_true', default=False)
+    parser.add_argument("--eval_recall", action="store_true", default=False)
+    parser.add_argument("--delete_tmp", action="store_true", default=False)
 
     evalargs = parser.parse_args()
+
+    if evalargs.demo:
+        evalargs.save_dir = "./demo_data/res_global"
+        evalargs.data_path = "./demo_data"
+        evalargs.ref_gt_file = "global_ref_demo.pickle"
+        evalargs.qry_gt_file = "global_query_demo.pickle"
+
     eval_retrieval(evalargs)

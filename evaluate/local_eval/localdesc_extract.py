@@ -34,13 +34,15 @@ from core.datasets import Local_test_dataset
 from core.configs import dotdict
 
 
-def get_eval_oxford_data(cfg={}):
+def get_eval_oxford_data(cfg={}, data_path=None):
     querybatch = cfg.batch_size
     totalbatch = querybatch
-    df = Local_test_dataset(basedir='./demo_data', dim=3,
-                            numpts=cfg.get('num_points'),
-                            knn_require=cfg.get('knn_num'),
-                            )
+    df = Local_test_dataset(
+        basedir=data_path,
+        dim=3,
+        numpts=cfg.get("num_points"),
+        knn_require=cfg.get("knn_num"),
+    )
     df = BatchData(df, totalbatch, remainder=True)
     df.reset_state()
     return df, totalbatch
@@ -48,7 +50,7 @@ def get_eval_oxford_data(cfg={}):
 
 def get_model_config(Model_Path):
     model_base = os.path.dirname(Model_Path)
-    model_config_json = os.path.join(model_base, 'config.json')
+    model_config_json = os.path.join(model_base, "config.json")
 
     assert os.path.exists(model_config_json)
     with open(model_config_json) as f:
@@ -65,40 +67,47 @@ def get_predictor(model_config, Model_Path):
     model_config.batch_size = 4
 
     if model_config.detection:
-        output_vas = ['xyz_feat_att']
+        output_vas = ["xyz_feat_att"]
     else:
-        output_vas = ['xyz_feat']
+        output_vas = ["xyz_feat"]
 
-    input_vas = ['pointclouds']
+    input_vas = ["pointclouds"]
     if model_config.num_points > 8192:
-        input_vas.append('knn_inds')
+        input_vas.append("knn_inds")
     pred_config = PredictConfig(
         model=DH3D(model_config),
         session_init=get_model_loader(Model_Path),
         input_names=input_vas,
-        output_names=output_vas
+        output_names=output_vas,
     )
     predictor = OfflinePredictor(pred_config)
     return predictor
 
 
 def pred_saveres(eval_config, res, filename, kp_savenum=-1):
-    ext_name = 'res.bin'
+    ext_name = "res.bin"
     if eval_config.save_all:
         save_res = np.float32(res)
-        savename = os.path.join(eval_config.save_dir, '{}_{}'.format(filename, ext_name))
+        savename = os.path.join(
+            eval_config.save_dir, "{}_{}".format(filename, ext_name)
+        )
         res.tofile(savename)
 
     elif eval_config.perform_nms:
         xyz = res[:, 0:3]
         attention = 1 - res[:, -1]
-        num_keypoints, max_indices = single_nms(xyz, attention, nms_radius=eval_config.nms_rad,
-                                                min_response_ratio=eval_config.nms_min_ratio,
-                                                max_keypoints=eval_config.nms_max_kp)
+        num_keypoints, max_indices = single_nms(
+            xyz,
+            attention,
+            nms_radius=eval_config.nms_rad,
+            min_response_ratio=eval_config.nms_min_ratio,
+            max_keypoints=eval_config.nms_max_kp,
+        )
         xyzfeatatt_nms = res[max_indices, :]
-        savename = os.path.join(eval_config.save_dir, '{}_nms_{}'.format(
-            filename, ext_name))
-        print('after NMS, shape', xyzfeatatt_nms.shape)
+        savename = os.path.join(
+            eval_config.save_dir, "{}_nms_{}".format(filename, ext_name)
+        )
+        print("after NMS, shape", xyzfeatatt_nms.shape)
         xyzfeatatt_nms.tofile(savename)
         # print(savename)
 
@@ -118,7 +127,9 @@ def perform_pred(df, totalbatch, predictor, eval_config):
             padzeros = np.zeros([totalbatch - batch, numpts, pcddim], dtype=np.float32)
             pc = np.vstack([pc, padzeros])
             if knn_ind is not None:
-                padzeros = np.zeros([totalbatch - batch, numpts, knn_ind.shape[2]], dtype=np.int32)
+                padzeros = np.zeros(
+                    [totalbatch - batch, numpts, knn_ind.shape[2]], dtype=np.int32
+                )
                 knn_ind = np.vstack([knn_ind, padzeros])
 
         if knn_ind is not None:
@@ -142,35 +153,65 @@ def pred_local_oxford(eval_args):
     mkdir_p(eval_args.save_dir)
     model_config = get_model_config(eval_args.ModelPath)
     ####===============set up graph ===================+##
-    if eval_args.dataset == 'oxford_lidar':
+    if eval_args.dataset == "oxford_lidar":
         model_config.num_points = 16384
-    elif eval_args.dataset == 'oxford_dso':
+    elif eval_args.dataset == "oxford_dso":
         model_config.num_points = 9000
     predictor = get_predictor(model_config, eval_args.ModelPath)
 
     ####===============data ===================+##
-    df, totalbatch = get_eval_oxford_data(model_config)
+    df, totalbatch = get_eval_oxford_data(model_config, eval_args.data_path)
 
     ####=============== predict ===================+##
     totalnum = perform_pred(df, totalbatch, predictor, eval_args)
-    print('Predict {} point clouds'.format(totalnum))
+    print("Predict {} point clouds".format(totalnum))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', help='comma separated list of GPU(s) to use.', default='0')
-    parser.add_argument('--save_dir', type=str, default='./demo_data/res_local')
-    parser.add_argument('--ModelPath', type=str, help='Model to load (for evaluation)',
-                        default='../../models/local/localmodel')
-    parser.add_argument('--dataset', type=str, help='oxford_lidar or oxford_dso', default='oxford_lidar')
-    parser.add_argument('--save_all', action='store_true',
-                        help='save dense feature map, which can be helpful when evaluating with other 3D detectors', default=False)
-    parser.add_argument('--perform_nms', action='store_true', help='perform nms and save detected descriptors', default=False)
-    parser.add_argument('--nms_rad', type=float, default=0.5)
-    parser.add_argument('--nms_min_ratio', type=float, default=0.01)
-    parser.add_argument('--nms_max_kp', type=int, default=512)
+    parser.add_argument(
+        "--demo", action="store_true", help="run on demo data", default=False
+    )
+    parser.add_argument(
+        "--gpu", help="comma separated list of GPU(s) to use.", default="0"
+    )
+    parser.add_argument("--save_dir", type=str, default="./res_local")
+    parser.add_argument(
+        "--ModelPath",
+        type=str,
+        help="Model to load (for evaluation)",
+        default="../../models/local/localmodel",
+    )
+    parser.add_argument(
+        "--data_path",
+        type=str,
+        help="local dataset dir",
+        default="../data/oxford_test_local",
+    )
+    parser.add_argument(
+        "--dataset", type=str, help="oxford_lidar or oxford_dso", default="oxford_lidar"
+    )
+    parser.add_argument(
+        "--save_all",
+        action="store_true",
+        help="save dense feature map, which can be helpful when evaluating with other 3D detectors",
+        default=False,
+    )
+    parser.add_argument(
+        "--perform_nms",
+        action="store_true",
+        help="perform nms and save detected descriptors",
+        default=False,
+    )
+    parser.add_argument("--nms_rad", type=float, default=0.5)
+    parser.add_argument("--nms_min_ratio", type=float, default=0.01)
+    parser.add_argument("--nms_max_kp", type=int, default=512)
 
     args = parser.parse_args()
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+    if args.demo:
+        args.save_dir = "./demo_data/res_local"
+        args.data_path = "./demo_data"
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     pred_local_oxford(args)
