@@ -147,3 +147,7 @@ logs
 *.cu.o
 res_local/
 res_global/
+
+# Compressed files
+*.tar.gz
+*.tar.xz
