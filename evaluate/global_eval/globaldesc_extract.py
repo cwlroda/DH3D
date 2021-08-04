@@ -107,8 +107,9 @@ def eval_retrieval(evalargs):
 
     # Evaluation recall:
     if evalargs.eval_recall:
+        log_dir = os.path.join(evalargs.save_dir, "res_global_.txt")
         evaluator = GlobalDesc_eval(
-            result_savedir="./",
+            result_savedir=log_dir,
             desc_dir=save_dir,
             database_file=os.path.join(evalargs.data_path, evalargs.ref_gt_file),
             query_file=os.path.join(evalargs.data_path, evalargs.qry_gt_file),
