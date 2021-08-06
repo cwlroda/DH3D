@@ -8,6 +8,10 @@ at the Technical University of Munich.
 **System overview:**
 <p align="center"> <img src=".github/overview.png" width="100%"> </p>
 
+## Setting up Conda environment
+A conda `yml` file is included for more portable setup.
+Run `conda env create --name ${ENV_NAME} --file tf2_5_conda.yml` where `ENV_NAME` is something of your choosing.
+
 ### Abstract
 
 For relocalization in large-scale point clouds, we propose the first approach that
