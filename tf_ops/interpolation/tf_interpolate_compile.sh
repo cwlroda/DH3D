@@ -1,29 +1,22 @@
 #/bin/bash
-#
-# TF1.2
-# g++ -std=c++11 tf_interpolate.cpp -o tf_interpolate_so.so -shared -fPIC -I /usr/local/lib/python2.7/dist-packages/tensorflow/include -I /usr/local/cuda-10.0/include -lcudart -L /usr/local/cuda-10.0/lib64/ -O2 -D_GLIBCXX_USE_CXX11_ABI=1
 
-# TF1.4
-# g++ -std=c++11 tf_interpolate.cpp -o tf_interpolate_so.so -shared -fPIC -I /usr/local/lib/python2.7/dist-packages/tensorflow/include -I /usr/local/cuda-10.0/include -I /usr/local/lib/python2.7/dist-packages/tensorflow/include/external/nsync/public -lcudart -L /usr/local/cuda-10.0/lib64/ -L/usr/local/lib/python2.7/dist-packages/tensorflow -ltensorflow_framework -O2 -D_GLIBCXX_USE_CXX11_ABI=1
+# Call this script from an outside compile wrapper.
 
-# Obtain cuda version (assume that nvcc has been added to path)
-set -e
-NVCC_VER=`nvcc --version`
-NVCC_VER=`echo ${NVCC_VER} | cut -d "," -f 2`
-NVCC_VER=`echo ${NVCC_VER} | cut -d " " -f 2`
+NVCC_VER=$1
+TF_VER=$2
+CXX_ABI_FLAG=$3
+TF_INC=$4
+TF_LIB=$5
+PROTO_INC=$6
 
-# set tensorflow version
-TF_VER=`python -c "import tensorflow as tf; print(tf.__version__)"`
-TF_VER=${TF_VER:0:1}
+printf "\n=== Building Interpolate ops using `nvcc --version`"
+printf "\n=== And g++ version `g++-7 --version`"
 
-TF_INC=$(python3 -c 'import tensorflow as tf; print(tf.sysconfig.get_include())')
-TF_LIB=$(python3 -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')
-
-# TF1.2
-g++ -std=c++11 tf_interpolate.cpp -o tf_interpolate_so.so -shared -fPIC \
--I ${TF_INC} \
--I ${TF_INC}/external/nsync/public \
--I /usr/local/cuda-${NVCC_VER}/include -lcudart -L /usr/local/cuda-${NVCC_VER}/lib64/ \
--L ${TF_LIB} -l:libtensorflow_framework.so.${TF_VER} -O2
+g++-7 -std=c++11 tf_interpolate.cpp -o tf_interpolate_so.so -shared -fPIC \
+  -I ${PROTO_INC} \
+  -I ${TF_INC} \
+  -I ${TF_INC}/external/nsync/public \
+  -I /usr/local/cuda-${NVCC_VER}/include -lcudart -L /usr/local/cuda-${NVCC_VER}/lib64/ \
+  -L${TF_LIB} -l:libtensorflow_framework.so.${TF_VER} -O2 -D_GLIBCXX_USE_CXX11_ABI=${CXX_ABI_FLAG}
 
 # Toggle USE_CXX11_ABI to 0 if there are include errors.
