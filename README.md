@@ -57,7 +57,7 @@ Other dependencies include:
 
 Create an environment:
 
-    conda create -n dh3d python=3.6.8
+    conda create -n dh3d python=3.6.8 tensorflow-gpu=1.9.0
 
 Install dependencies:
 
@@ -79,7 +79,7 @@ First, update the install scripts to match your current version of CUDA/nvcc:
     nvcc --version
     NVCC_VER=`nvcc --version | grep -o "cuda_..\.."` # get current version of nvcc
     NVCC_VER="${NVCC_VER:5}"			     # get numerical number
-    sed -i "s|cuda-10.0|cuda-$NVCC_VER|g" "tf_ops/*/tf_*_compile.sh    
+    sed -i "s|cuda-10.0|cuda-$NVCC_VER|g" "tf_ops/*/tf_*_compile.sh
 
     cd tf_ops/grouping/
     ./tf_grouping_compile.sh
