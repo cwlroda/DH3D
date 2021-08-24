@@ -23,7 +23,7 @@ TF_LIB=$(python3 -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')
 g++ -std=c++11 tf_interpolate.cpp -o tf_interpolate_so.so -shared -fPIC \
 -I ${TF_INC} \
 -I ${TF_INC}/external/nsync/public \
--I /usr/local/cuda-${NVCC_VER}/include -lcudart -L /usr/local/cuda-${NVCC_VER}/lib64/ \
--L ${TF_LIB} -l:libtensorflow_framework.so.${TF_VER} -O2
+-I /usr/local/cuda/include -lcudart -L /usr/local/cuda/lib64/ \
+-L ${TF_LIB} -ltensorflow_framework -O2
 
 # Toggle USE_CXX11_ABI to 0 if there are include errors.
