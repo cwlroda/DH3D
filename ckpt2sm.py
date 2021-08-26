@@ -42,7 +42,6 @@ def convert_local_model(trained_checkpoint_prefix, export_dir, config):
         output_names=["xyz_feat", "xyz_feat_att"],
     )  # tensor names in the graph
 
-    # session_init = SaverRestore(trained_checkpoint_prefix)
     ModelExporter(pred_config).export_serving(export_dir)
 
 
@@ -56,7 +55,6 @@ def convert_global_model(trained_checkpoint_prefix, export_dir, config):
         output_names=["globaldesc"],
     )  # tensor names in the graph
 
-    # session_init = SaverRestore(trained_checkpoint_prefix)
     ModelExporter(pred_config).export_serving(export_dir)
 
 
