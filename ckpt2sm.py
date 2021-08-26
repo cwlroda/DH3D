@@ -12,7 +12,6 @@ from core.configs import ConfigFactory
 parser = argparse.ArgumentParser(description="Visualise model in Tensorboard")
 parser.add_argument("--gpu", help="comma separated list of GPU(s) to use.", default="0")
 parser.add_argument("--model", type=str, default="local")
-parser.add_argument("--cfg", type=str, default="basic_config")
 args = parser.parse_args()
 
 
@@ -33,14 +32,28 @@ def get_vars():
             f.write("Variable: {}\n".format(var.name))
 
 
-def convertLocalModel(trained_checkpoint_prefix, export_dir, config):
+def convert_local_model(trained_checkpoint_prefix, export_dir, config):
     pred_config = PredictConfig(
         model=DH3D(config),
         session_init=SmartInit(trained_checkpoint_prefix),
         input_names=[
             "pointclouds",
         ],  # tensor names in the graph, or name of the declared inputs
-        output_names=["xyz_feat"],
+        output_names=["xyz_feat", "xyz_feat_att"],
+    )  # tensor names in the graph
+
+    # session_init = SaverRestore(trained_checkpoint_prefix)
+    ModelExporter(pred_config).export_serving(export_dir)
+
+
+def convert_global_model(trained_checkpoint_prefix, export_dir, config):
+    pred_config = PredictConfig(
+        model=DH3D(config),
+        session_init=SmartInit(trained_checkpoint_prefix),
+        input_names=[
+            "pointclouds",
+        ],  # tensor names in the graph, or name of the declared inputs
+        output_names=["globaldesc"],
     )  # tensor names in the graph
 
     # session_init = SaverRestore(trained_checkpoint_prefix)
@@ -86,18 +99,22 @@ def ckpt2sm(trained_checkpoint_prefix, export_dir):
 if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
-    configs = ConfigFactory(args.cfg).getconfig()
 
     if args.model == "local":
         trained_checkpoint_prefix = "models/local/localmodel"
         export_dir = "models/local/sm"
+        cfg = "detection_config"
+        configs = ConfigFactory(cfg).getconfig()
+        convert_local_model(trained_checkpoint_prefix, export_dir, configs)
 
     elif args.model == "global":
         trained_checkpoint_prefix = "models/global/globalmodel"
         export_dir = "models/global/sm"
+        cfg = "global_config"
+        configs = ConfigFactory(cfg).getconfig()
+        convert_global_model(trained_checkpoint_prefix, export_dir, configs)
 
     else:
         print("Invalid model")
 
-    convertLocalModel(trained_checkpoint_prefix, export_dir, configs)
     # ckpt2sm(trained_checkpoint_prefix, export_dir)
