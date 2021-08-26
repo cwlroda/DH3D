@@ -42,8 +42,8 @@ If you find our work useful in your research, please consider citing:
 We have tested with:
 
 * Ubuntu 16.04 with CUDA 10.1 + TensorFlow 1.9
-* **Ubuntu 16.04 with CUDA 10.0 + TensorFlow 1.9**
 * Ubuntu 18.04 with CUDA 9.2 + TensorFlow 1.9 and TensorFlow 1.10
+* **Conda: Ubuntu 16.04/18.04/20.04 with CUDA 9.0 + TensorFlow 1.9**
 
 Other dependencies include:
 
@@ -57,11 +57,7 @@ Other dependencies include:
 
 Create an environment:
 
-    conda create -n dh3d python=3.6.8 tensorflow-gpu=1.9.0
-
-Install dependencies:
-
-    conda install -c hcc -c open3d-admin --file requirements.txt
+    conda env create -f env.yml
 
 (by default, `open3d` and `tensorpack` are not found in the default conda repo)
 
