@@ -24,6 +24,6 @@ g++ -std=c++11 tf_interpolate.cpp -o tf_interpolate_so.so -shared -fPIC \
 -I ${TF_INC} \
 -I ${TF_INC}/external/nsync/public \
 -I /usr/local/cuda/include -lcudart -L /usr/local/cuda/lib64/ \
--L ${TF_LIB} -ltensorflow_framework -O2
+-L ${TF_LIB} -l:libtensorflow_framework.so -O2 -D_GLIBCXX_USE_CXX11_ABI=1
 
 # Toggle USE_CXX11_ABI to 0 if there are include errors.

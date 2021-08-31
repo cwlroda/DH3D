@@ -28,41 +28,41 @@ namespace tensorflow {
 // --------------------------------------------------
 template <typename Device, typename Dtype>
 class KnnBruteforceOp : public OpKernel {
- public:
-  explicit KnnBruteforceOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("k", &K));
-  }
+   public:
+    explicit KnnBruteforceOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
+        OP_REQUIRES_OK(ctx, ctx->GetAttr("k", &K));
+    }
 
-  void Compute(OpKernelContext* ctx) override {
-    const Tensor& positions = ctx->input(0);
-    const Tensor& neighborhood_in = ctx->input(1);
+    void Compute(OpKernelContext* ctx) override {
+        const Tensor& positions = ctx->input(0);
+        const Tensor& neighborhood_in = ctx->input(1);
 
-    const int B = positions.shape().dim_size(0);
-    const int N = positions.shape().dim_size(2);
+        const int B = positions.shape().dim_size(0);
+        const int N = positions.shape().dim_size(2);
 
-    Tensor* neighborhood_out = nullptr;
-    Tensor* distances = nullptr;
+        Tensor* neighborhood_out = nullptr;
+        Tensor* distances = nullptr;
 
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({B, N, K}),
-                                             &neighborhood_out));
+        OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({B, N, K}),
+                                                 &neighborhood_out));
 
-    OP_REQUIRES_OK(ctx,
-                   ctx->allocate_output(1, TensorShape({B, N, K}), &distances));
+        OP_REQUIRES_OK(
+            ctx, ctx->allocate_output(1, TensorShape({B, N, K}), &distances));
 
-    ::tensorflow::functor::KnnBruteforceFunctor<Device, Dtype, int> knnBFF;
-    knnBFF(ctx, positions, neighborhood_out, distances);
-  }
+        ::tensorflow::functor::KnnBruteforceFunctor<Device, Dtype, int> knnBFF;
+        knnBFF(ctx, positions, neighborhood_out, distances);
+    }
 
- private:
-  TF_DISALLOW_COPY_AND_ASSIGN(KnnBruteforceOp);
+   private:
+    TF_DISALLOW_COPY_AND_ASSIGN(KnnBruteforceOp);
 
-  int K;
+    int K;
 };
 
-#define REGISTER_CUSTOM_OP(NAME, DEVICE, T)                       \
-  REGISTER_KERNEL_BUILDER(                                        \
-      Name(#NAME).Device(DEVICE_##DEVICE).TypeConstraint<T>("T"), \
-      NAME##Op<DEVICE##Device, T>)
+#define REGISTER_CUSTOM_OP(NAME, DEVICE, T)                         \
+    REGISTER_KERNEL_BUILDER(                                        \
+        Name(#NAME).Device(DEVICE_##DEVICE).TypeConstraint<T>("T"), \
+        NAME##Op<DEVICE##Device, T>)
 
 REGISTER_CUSTOM_OP(KnnBruteforce, CPU, float);
 
