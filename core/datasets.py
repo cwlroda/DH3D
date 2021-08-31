@@ -36,23 +36,30 @@ from augment import *
 
 # local train
 def get_train_local_selfpair(cfg):
-    augmentation = ['Jitter']
-    df = Local_train_dataset_selfpair(basedir=cfg.data_basedir, aug=augmentation,
-                                      sample_nodes=cfg.sampled_kpnum,
-                                      train_file=os.path.join(cfg.data_basedir, 'oxford_train_local_gt.pickle'))
+    augmentation = ["Jitter"]
+    df = Local_train_dataset_selfpair(
+        basedir=cfg.data_basedir,
+        aug=augmentation,
+        sample_nodes=cfg.sampled_kpnum,
+        train_file=os.path.join(cfg.data_basedir, "oxford_train_local_gt.pickle"),
+    )
     df = BatchData(df, cfg.batch_size)
     return df
 
 
 # Global train
 def get_train_global_triplet(cfg={}):
-    augmentation = ['Jitter', 'RotateSmall', 'Rotate1D']
-    if 'data_aug' in cfg:
+    augmentation = ["Jitter", "RotateSmall", "Rotate1D"]
+    if "data_aug" in cfg:
         augmentation = cfg.data_aug
-    df = Global_train_dataset_triplet(basedir=cfg.data_basedir,
-                                      train_file=os.path.join(cfg.data_basedir, 'oxford_train_global_gt.pickle'),
-                                      posnum=cfg.num_pos, negnum=cfg.num_neg, other_neg=cfg.other_neg,
-                                      aug=augmentation)
+    df = Global_train_dataset_triplet(
+        basedir=cfg.data_basedir,
+        train_file=os.path.join(cfg.data_basedir, "oxford_train_global_gt.pickle"),
+        posnum=cfg.num_pos,
+        negnum=cfg.num_neg,
+        other_neg=cfg.other_neg,
+        aug=augmentation,
+    )
     df = BatchData(df, cfg.batch_size)
     return df
 
@@ -82,7 +89,9 @@ class Local_test_dataset(DataFlow):
         ori_num = cloud.shape[0]
         if ori_num != self.numpts:
             # downsample is not required if the pointcloud is already processed by the voxelsize around 0.2
-            cloud, ori_num = get_fixednum_pcd(cloud, self.numpts, randsample=False, need_downsample=True)
+            cloud, ori_num = get_fixednum_pcd(
+                cloud, self.numpts, randsample=False, need_downsample=True
+            )
         else:
             choice_idx = np.random.choice(cloud.shape[0], self.numpts, replace=False)
             cloud = cloud[choice_idx, :]
@@ -101,7 +110,17 @@ class Local_test_dataset(DataFlow):
 
 
 class Local_train_dataset_selfpair(RNGDataFlow):
-    def __init__(self, basedir, train_file, numpts=8192, sample_nodes=256, dim=3, rot_maxv=np.pi, aug=['Jitter'], shuffle=True):
+    def __init__(
+        self,
+        basedir,
+        train_file,
+        numpts=8192,
+        sample_nodes=256,
+        dim=3,
+        rot_maxv=np.pi,
+        aug=["Jitter"],
+        shuffle=True,
+    ):
         assert os.path.isdir(basedir)
         self.basedir = basedir
         self.shuffle = shuffle
@@ -117,15 +136,17 @@ class Local_train_dataset_selfpair(RNGDataFlow):
         return len(self.dict.keys())
 
     def process_point_cloud(self, cloud):
-        cloud, _ = get_fixednum_pcd(cloud, self.numpts, randsample=True, need_downsample=False, sortby_dis=False)
+        cloud, _ = get_fixednum_pcd(
+            cloud, self.numpts, randsample=True, need_downsample=False, sortby_dis=False
+        )
         # augmentation
         for a in self.augmentation:
             cloud = a.apply(cloud)
         return cloud
 
     def loadPair(self, ind):
-        pcfile = self.dict[ind]['query']
-        pcfile = os.path.join(self.basedir, pcfile + '.bin')
+        pcfile = self.dict[ind]["query"]
+        pcfile = os.path.join(self.basedir, pcfile + ".bin")
         cloud = load_single_pcfile(pcfile, dim=self.dim)
         pc1 = self.process_point_cloud(cloud[:, 0:3])  # augmentation
         pc2 = self.process_point_cloud(cloud[:, 0:3])  # augmentation
@@ -134,14 +155,16 @@ class Local_train_dataset_selfpair(RNGDataFlow):
         rotation_angle = np.random.uniform(low=-self.rot_maxv, high=self.rot_maxv)
         cosval = np.cos(rotation_angle)
         sinval = np.sin(rotation_angle)
-        rotation_matrix = np.array([[cosval, sinval, 0],
-                                    [-sinval, cosval, 0],
-                                    [0, 0, 1]])
+        rotation_matrix = np.array(
+            [[cosval, sinval, 0], [-sinval, cosval, 0], [0, 0, 1]]
+        )
         pc2_trans = np.dot(pc2, rotation_matrix)
 
         # sample
         farthest_sampler = FarthestSampler()
-        pcd1_subset_ind = np.random.choice(pc1.shape[0], pc1.shape[0] // 2, replace=False)
+        pcd1_subset_ind = np.random.choice(
+            pc1.shape[0], pc1.shape[0] // 2, replace=False
+        )
         pcd1_subset = pc1[list(pcd1_subset_ind), :]
         anc_subset_node_inds = farthest_sampler.sample(pcd1_subset, self.sample_nodes)
         anc_node_inds = pcd1_subset_ind[anc_subset_node_inds]
@@ -161,9 +184,19 @@ class Local_train_dataset_selfpair(RNGDataFlow):
 
 
 class Global_train_dataset_triplet(RNGDataFlow):
-    def __init__(self, basedir, train_file, posnum, negnum, numpts=8192, dim=3,
-                 aug=['Jitter', 'RotateSmall', 'Shift', 'Rotate1D'], shuffle=True, randsample=True,
-                 other_neg=False):
+    def __init__(
+        self,
+        basedir,
+        train_file,
+        posnum,
+        negnum,
+        numpts=8192,
+        dim=3,
+        aug=["Jitter", "RotateSmall", "Shift", "Rotate1D"],
+        shuffle=True,
+        randsample=True,
+        other_neg=False,
+    ):
         assert os.path.isdir(basedir)
         self.basedir = basedir
         self.shuffle = shuffle
@@ -180,12 +213,13 @@ class Global_train_dataset_triplet(RNGDataFlow):
     def __len__(self):
         return len(self.dict.keys())
 
-
     def loadPC(self, ind):
-        pcfile = self.dict[ind]['query']
-        pcfile = os.path.join(self.basedir, pcfile + '.bin')
+        pcfile = self.dict[ind]["query"]
+        pcfile = os.path.join(self.basedir, pcfile + ".bin")
         cloud = load_single_pcfile(pcfile, dim=self.dim)
-        cloud, _ = get_fixednum_pcd(cloud, self.numpts, randsample=True, need_downsample=False, sortby_dis=True)
+        cloud, _ = get_fixednum_pcd(
+            cloud, self.numpts, randsample=True, need_downsample=False, sortby_dis=True
+        )
         for a in self.augmentation:
             cloud = a.apply(cloud)
         return cloud
@@ -206,13 +240,23 @@ class Global_train_dataset_triplet(RNGDataFlow):
         self.queries_idxs = fileidxs
 
         for i in self.queries_idxs:
-            positives = self.dict[i]['positives']
-            nonnegtives = self.dict[i]['nonnegtives']
+            positives = self.dict[i]["positives"]
+            nonnegtives = self.dict[i]["nonnegtives"]
             if len(positives) < self.pos_num:
                 continue
-            posind = [positives[i] for i in np.random.choice(len(positives), size=self.pos_num, replace=False)]
+            posind = [
+                positives[i]
+                for i in np.random.choice(
+                    len(positives), size=self.pos_num, replace=False
+                )
+            ]
             possible_negs = list(set(self.dict.keys()) - set(nonnegtives))
-            negind = [possible_negs[i] for i in np.random.choice(len(possible_negs), size=self.neg_num, replace=False)]
+            negind = [
+                possible_negs[i]
+                for i in np.random.choice(
+                    len(possible_negs), size=self.neg_num, replace=False
+                )
+            ]
 
             query_pcd = self.loadPC(i)
             pos_pcds = self.loadPC_list(posind)
@@ -234,8 +278,15 @@ class Global_train_dataset_triplet(RNGDataFlow):
 
 
 class Global_test_dataset(RNGDataFlow):
-    def __init__(self, basedir, test_file,
-                 numpts=4096 * 2, pcd_dim=3, pcd_dtype=np.float32, **kwarg):
+    def __init__(
+        self,
+        basedir,
+        test_file,
+        numpts=4096 * 2,
+        pcd_dim=3,
+        pcd_dtype=np.float32,
+        **kwarg
+    ):
         assert os.path.isdir(basedir)
         assert os.path.isfile(test_file)
         self.basedir = basedir
@@ -244,8 +295,8 @@ class Global_test_dataset(RNGDataFlow):
         self.pcd_dim = pcd_dim
         self.pcd_dtype = pcd_dtype
 
-        if 'eval_sequences' in kwarg:
-            self.eval_sequences = sorted(kwarg.get('eval_sequences'))
+        if "eval_sequences" in kwarg:
+            self.eval_sequences = sorted(kwarg.get("eval_sequences"))
         else:
             self.eval_sequences = sorted(self.testdict.keys())
         self.eval_list = self.get_pcd_list()
@@ -259,20 +310,27 @@ class Global_test_dataset(RNGDataFlow):
         for seq in self.eval_sequences:
             seqinfo = self.testdict[seq]
             for pcd in seqinfo:
-                pcdlist.append(pcd['query'] + '.bin')
+                pcdlist.append(pcd["query"] + ".bin")
         print("{} pointclouds to predict. \n".format(len(pcdlist)))
         return pcdlist
 
     def __iter__(self):
         for i in range(self.size):
             name = self.eval_list[i]
-            pcd = load_single_pcfile(os.path.join(self.basedir, name), dim=self.pcd_dim, dtype=self.pcd_dtype)
+            pcd = load_single_pcfile(
+                os.path.join(self.basedir, name), dim=self.pcd_dim, dtype=self.pcd_dtype
+            )
 
             if pcd.shape[0] != self.numpts:
-                pcd, ori_num = get_fixednum_pcd(pcd, self.numpts, randsample=True, need_downsample=False,
-                                                sortby_dis=True)
+                pcd, ori_num = get_fixednum_pcd(
+                    pcd,
+                    self.numpts,
+                    randsample=True,
+                    need_downsample=False,
+                    sortby_dis=True,
+                )
             yield [pcd, name]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass
