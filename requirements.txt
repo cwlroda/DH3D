@@ -3,3 +3,4 @@ scikit-learn
 scipy
 tabulate==0.8.9
 tensorpack
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
